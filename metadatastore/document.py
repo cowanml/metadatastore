@@ -34,7 +34,10 @@ def _normalize(in_val):
     if isinstance(in_val, BaseDocument):
         return Document.from_mongo(in_val)
     elif isinstance(in_val, BaseDict):
-        return {_normalize(k): _normalize(v) for k, v in six.iteritems(in_val)}
+        d = {}
+        for k, v in six.iteritems(in_val):
+            d[_normalize(k)] = _normalize(v) 
+        return d
     elif isinstance(in_val, BaseList):
         return [_normalize(v) for v in in_val]
     elif isinstance(in_val, ObjectId):

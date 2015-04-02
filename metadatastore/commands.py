@@ -66,12 +66,12 @@ def format_data_keys(data_key_dict):
          'data_key2': mds.odm_templates.DataKeys
         }
     """
-    data_key_dict = {key_name: (
-                     DataKey(**data_key_description) if
-                     not isinstance(data_key_description, DataKey) else
-                     data_key_description)
-                     for key_name, data_key_description
-                     in six.iteritems(data_key_dict)}
+
+    for key_name, data_key_description in six.iteritems(data_key_dict):
+        data_key_dict[key_name] = (DataKey(**data_key_description) if
+                                   not isinstance(data_key_description, DataKey) else
+                                   data_key_description)
+
     return data_key_dict
 
 
@@ -101,8 +101,11 @@ def format_events(event_dict):
          'data_key2': [...],
         }
     """
-    return {key: [data_dict['value'], data_dict['timestamp']]
-            for key, data_dict in six.iteritems(event_dict)}
+
+    d = {}
+    for key, data_dict in six.iteritems(event_dict):
+        d[key] = [data_dict['value'], data_dict['timestamp']]
+    return d
 
 
 # database INSERTION ###################################################
@@ -686,8 +689,11 @@ def _replace_dict_keys(input_dict, src, dst):
         replaced with 'dst'
 
     """
-    return {k.replace(src, dst): v for
-            k, v in six.iteritems(input_dict)}
+
+    d = {}
+    for k, v in six.iteritems(input_dict):
+        d[k.replace(src, dst)] = v
+    return d
 
 
 def _src_dst(direction):
