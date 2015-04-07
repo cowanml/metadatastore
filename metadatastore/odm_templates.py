@@ -1,7 +1,7 @@
 """
 ODM templates for use with metadatstore
 """
-from mongoengine import Document, DynamicDocument, DynamicEmbeddedDocument
+from mongoengine import (Document, DynamicDocument, DynamicEmbeddedDocument)
 from mongoengine import (StringField, DictField, IntField, FloatField,
                          ListField, ReferenceField, EmbeddedDocumentField,
                          DENY, MapField)

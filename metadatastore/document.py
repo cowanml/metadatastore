@@ -1,6 +1,6 @@
 import six
 import mongoengine
-from mongoengine.base.datastructures import BaseDict, BaseList
+from mongoengine.base.datastructures import (BaseDict, BaseList)
 from mongoengine.base.document import BaseDocument
 from bson.objectid import ObjectId
 from datetime import datetime
