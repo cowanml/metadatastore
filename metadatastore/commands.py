@@ -27,7 +27,8 @@ def _ensure_connection(func):
         database = conf.connection_config['database']
         host = conf.connection_config['host']
         port = conf.connection_config['port']
-        db_connect(database=database, host=host, port=port)
+        alias = conf.connection_config['alias']
+        db_connect(database=database, host=host, port=port, alias=alias)
         return func(*args, **kwargs)
     return inner
 
@@ -39,8 +40,8 @@ def db_disconnect():
         collection._collection = None
 
 
-def db_connect(database, host, port):
-    return connect(db=database, host=host, port=port, alias=ALIAS)
+def db_connect(database, host, port, alias=None):
+    return connect(db=database, host=host, port=port, alias=alias)
 
 
 def format_data_keys(data_key_dict):
