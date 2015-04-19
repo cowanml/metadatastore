@@ -36,13 +36,13 @@ def load_configuration(name, prefix, fields=None):
              with the values extracted
      )
     """
-
     db_connect_args = set(['database', 'host', 'port', 'alias'])
+    default_required_fields = set(['timezone']).union(db_connect_args)
 
     if fields is None:
-        fields = db_connect_args
+        fields = default_required_fields
     else:
-        fields = db_connect_args.union(set(fields))
+        fields = default_required_fields.union(set(fields))
         
 
     filenames = [os.path.join('/etc', name + '.yml'),
