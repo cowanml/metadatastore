@@ -13,22 +13,23 @@ from nose.tools import assert_equal, assert_raises, raises
 
 from metadatastore.odm_templates import (BeamlineConfig, EventDescriptor,
                                          RunStart, RunStop)
+from metadatastore.odm_templates import collections
 import metadatastore.commands as mdsc
-from metadatastore.utils.testing import mds_setup, mds_teardown
+from metadatastore.utils.testing import db_setup, db_teardown
 from metadatastore.examples.sample_data import temperature_ramp
 
 blc = None
 
 
 def setup():
-    mds_setup()
+    db_setup(collections)
     global blc
     temperature_ramp.run()
     blc = mdsc.insert_beamline_config({}, ttime.time())
 
 
 def teardown():
-    mds_teardown()
+    db_teardown(collections)
 
 
 def _blc_tester(config_dict):

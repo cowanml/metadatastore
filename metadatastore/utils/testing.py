@@ -1,18 +1,17 @@
 import uuid
 from metadatastore.api import db_connect, db_disconnect
-from ..odm_templates import collections
 
 conn = None
 db_name = "mds_testing_disposable_{}".format(str(uuid.uuid4()))
 
 
-def mds_setup():
+def db_setup(collections):
     "Create a fresh database with unique (random) name."
     global conn
     db_disconnect(collections)
     conn = db_connect(db_name, 'localhost', 27017)
 
-def mds_teardown():
+def db_teardown(collections):
     "Drop the fresh database and disconnect."
     conn.drop_database(db_name)
     db_disconnect(collections)
