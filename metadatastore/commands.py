@@ -1,7 +1,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 import six
-from functools import wraps
+from functools import (wraps, partial)
 from itertools import count
 from .odm_templates import (RunStart, BeamlineConfig, RunStop,
                             EventDescriptor, Event, DataKey, ALIAS)
@@ -21,16 +21,20 @@ from bson import ObjectId
 logger = logging.getLogger(__name__)
 
 
-def _ensure_connection(func):
+def ensure_connection(func=None, conf=None):
+    if conf is None:
+        raise ValueError('must provide configuration object')
+    if func is None:
+        return partial(ensure_connection, conf=conf)
+
     @wraps(func)
     def inner(*args, **kwargs):
-        database = conf.connection_config['database']
-        host = conf.connection_config['host']
-        port = conf.connection_config['port']
-        alias = conf.connection_config['alias']
-        db_connect(database=database, host=host, port=port, alias=alias)
+        db_connect(**conf.db_connect_args)
         return func(*args, **kwargs)
     return inner
+
+
+_ensure_connection = ensure_connection(conf=conf)
 
 
 def db_disconnect():
@@ -428,7 +432,7 @@ def _normalize_human_friendly_time(val):
     """
     # {} is placeholder for formats; filled in after def...
 
-    tz = conf.connection_config['timezone']  # e.g., 'US/Eastern'
+    tz = conf.timezone  # e.g., 'US/Eastern'
     zone = pytz.timezone(tz)  # tz as datetime.tzinfo object
     epoch = pytz.UTC.localize(datetime.datetime(1970, 1, 1))
     check = True

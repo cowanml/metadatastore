@@ -32,6 +32,7 @@ def load_configuration(name, prefix, fields):
     conf : dict
         Dictionary keyed on ``fields`` with the values extracted
     """
+
     filenames = [os.path.join('/etc', name + '.yml'),
                  os.path.join(os.path.expanduser('~'), '.config',
                               name, 'connection.yml'),
@@ -48,15 +49,21 @@ def load_configuration(name, prefix, fields):
             logger.debug("Using db connection specified in config file. \n%r",
                          config)
 
-    for field in fields:
-        var_name = prefix + '_' + field.upper().replace(' ', '_')
+    for field in set(fields).union(set(config.keys())):
+        var_name = (prefix + '_' + field.upper()).replace(' ', '_')
         config[field] = os.environ.get(var_name, config.get(field, None))
 
-    missing = [k for k, v in config.items() if v is None]
+    missing = [k for k, v in config.items() if v is None and k in fields]
     if missing:
-        raise KeyError("The configuration field(s) {0} were not found in any "
-                           "file or environmental variable.".format(missing))
+        raise KeyError("The required configuration field(s), {0}"
+                       ", were not found in any file or"
+                       " environment variable.".format(missing))
     return config
 
-connection_config = load_configuration('metadatastore', 'MDS',
-    ['host', 'database', 'port', 'timezone', 'alias'])
+
+timezone = load_configuration('metadatastore', 'MDS',
+                              ['timezone'])['timezone']
+
+db_connect_args = load_configuration('metadatastore', 'MDS',
+                                     ['database', 'host',
+                                      'port', 'alias'])
