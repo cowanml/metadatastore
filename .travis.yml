@@ -16,7 +16,7 @@ before_install:
   - export MDS_HOST=localhost
   - export MDS_DATABASE=test
   - export MDS_TIMEZONE=US/Eastern
-  - export MDS_MDS=mds
+  - export MDS_ALIAS=mds
   - mkdir -p /home/travis/.config/metadatastore
   - 'echo ''port: 27017'' > /home/travis/.config/metadatastore/connection.yml'
 
