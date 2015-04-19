@@ -7,7 +7,7 @@ from mongoengine import (StringField, DictField, IntField, FloatField,
                          DENY, MapField)
 from getpass import getuser
 
-ALIAS = 'mds'
+from metadatastore.conf import ALIAS
 
 
 class BeamlineConfig(DynamicDocument):
@@ -181,3 +181,7 @@ class Event(Document):
     data = DictField(required=True)
     time = FloatField(required=True)
     meta = {'indexes': ['-descriptor', '-_id'], 'db_alias': ALIAS}
+
+
+collections = [RunStart, BeamlineConfig, RunStop, EventDescriptor,
+               Event, DataKey]

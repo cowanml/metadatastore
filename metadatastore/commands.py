@@ -3,20 +3,19 @@ from __future__ import (absolute_import, division, print_function,
 import six
 from functools import (wraps, partial)
 from itertools import count
-from .odm_templates import (RunStart, BeamlineConfig, RunStop,
-                            EventDescriptor, Event, DataKey, ALIAS)
-from .document import Document
 import datetime
 import logging
-from metadatastore import conf
 from mongoengine import connect,  ReferenceField
 import mongoengine.connection
-
-import datetime
 import pytz
-
 import uuid
 from bson import ObjectId
+
+from metadatastore import (conf, ALIAS)
+
+from .odm_templates import (RunStart, BeamlineConfig, RunStop,
+                            EventDescriptor, Event, DataKey)
+from .document import Document
 
 logger = logging.getLogger(__name__)
 
@@ -37,10 +36,9 @@ def ensure_connection(func=None, conf=None):
 _ensure_connection = ensure_connection(conf=conf)
 
 
-def db_disconnect():
+def db_disconnect(collections):
     mongoengine.connection.disconnect(ALIAS)
-    for collection in [RunStart, BeamlineConfig, RunStop, EventDescriptor,
-                       Event, DataKey]:
+    for collection in collections:
         collection._collection = None
 
 

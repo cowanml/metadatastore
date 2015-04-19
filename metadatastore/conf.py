@@ -5,7 +5,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def load_configuration(name, prefix, fields):
+def load_configuration(name, prefix, fields=None):
     """
     Load configuration data form a cascading series of locations.
 
@@ -24,14 +24,26 @@ def load_configuration(name, prefix, fields):
     prefix : str
         The prefix when looking for environmental variables
 
-    fields : iterable of strings
-        The required configuration fields
+    fields : iterable of strings, optional
+        Any required configuration fields.
+        (in addition to ['database', 'host', 'port', 'alias'])
 
     Returns
     ------
-    conf : dict
-        Dictionary keyed on ``fields`` with the values extracted
+    (db_connect_args:  [db, host, port, alias]
+     timezone:  eg. 'US/Eastern'
+     other:  dict of remaining fields, keyed on ``fields``,
+             with the values extracted
+     )
     """
+
+    db_connect_args = set(['database', 'host', 'port', 'alias'])
+
+    if fields is None:
+        fields = db_connect_args
+    else:
+        fields = db_connect_args.union(set(fields))
+        
 
     filenames = [os.path.join('/etc', name + '.yml'),
                  os.path.join(os.path.expanduser('~'), '.config',
@@ -49,7 +61,7 @@ def load_configuration(name, prefix, fields):
             logger.debug("Using db connection specified in config file. \n%r",
                          config)
 
-    for field in set(fields).union(set(config.keys())):
+    for field in fields.union(set(config.keys())):
         var_name = (prefix + '_' + field.upper()).replace(' ', '_')
         config[field] = os.environ.get(var_name, config.get(field, None))
 
@@ -58,12 +70,16 @@ def load_configuration(name, prefix, fields):
         raise KeyError("The required configuration field(s), {0}"
                        ", were not found in any file or"
                        " environment variable.".format(missing))
-    return config
+
+    alias = config['alias']  # don't pop!  need in db_params too!
+    timezone = config.pop('timezone')
+
+    db_params = {}
+    for key in db_connect_args:
+        db_params[key] = config.pop(key)
+    
+    return (db_params, alias, timezone, config)
 
 
-timezone = load_configuration('metadatastore', 'MDS',
-                              ['timezone'])['timezone']
-
-db_connect_args = load_configuration('metadatastore', 'MDS',
-                                     ['database', 'host',
-                                      'port', 'alias'])
+(db_connect_args, ALIAS, timezone, other
+        ) = load_configuration('metadatastore', 'MDS')
