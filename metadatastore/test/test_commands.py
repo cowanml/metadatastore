@@ -29,7 +29,8 @@ def setup():
 
 
 def teardown():
-    db_teardown(collections)
+    db_teardown(collections, drop_db=False)
+#    db_teardown(collections)
 
 
 def _blc_tester(config_dict):
