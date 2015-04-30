@@ -14,14 +14,10 @@ def db_setup(collections):
     conn = db_connect(db_name, 'localhost', 27017)
 
 
-def db_teardown(collections):
+def db_teardown(collections, drop_db=None):
     "Drop the fresh database and disconnect."
-    drop_db=None
 
-    if drop_db is None:
-        drop_db = True
-
-    if drop_db:
+    if drop_db == True:
         conn.drop_database(db_name)
 
     db_disconnect(collections)
