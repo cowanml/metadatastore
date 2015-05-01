@@ -15,22 +15,21 @@ from metadatastore.odm_templates import (BeamlineConfig, EventDescriptor,
                                          RunStart, RunStop)
 from metadatastore.odm_templates import collections
 import metadatastore.commands as mdsc
-from metadatastore.utils.testing import db_setup, db_teardown
+from metadatastore.utils.testing import testdb_setup, testdb_teardown
 from metadatastore.examples.sample_data import temperature_ramp
 
 blc = None
 
 
 def setup():
-    db_setup(collections)
+    testdb_setup(collections)
     global blc
     temperature_ramp.run()
     blc = mdsc.insert_beamline_config({}, ttime.time())
 
 
 def teardown():
-    db_teardown(collections, drop_db=False)
-#    db_teardown(collections)
+    testdb_teardown(collections, drop_db=False)
 
 
 def _blc_tester(config_dict):

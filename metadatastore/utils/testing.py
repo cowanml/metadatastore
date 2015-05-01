@@ -11,7 +11,7 @@ test_db_port = '27017'
 test_db_alias = 'mds'
 
 
-def db_setup(collections):
+def testdb_setup(collections):
     "Create a fresh database with unique (random) name."
     global conn
     db_disconnect(collections)
@@ -19,9 +19,9 @@ def db_setup(collections):
                       int(test_db_port), test_db_alias)
 
 
-def db_teardown(collections, drop_db=None):
+def testdb_teardown(collections, drop_db=True):
     "Drop the fresh database and disconnect."
 
-    if drop_db == True:
+    if drop_db != False:
         conn.drop_database(test_db_name)
     db_disconnect(collections)
