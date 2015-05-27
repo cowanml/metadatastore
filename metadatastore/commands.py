@@ -438,7 +438,7 @@ _TS_FORMATS = [
 
 # build a tab indented, '-' bulleted list of supported formats
 # to append to the parsing function docstring below
-_doc_ts_formats = '\n'.join('\t- {}'.format(_) for _ in _TS_FORMATS)
+_doc_ts_formats = '\n'.join('\t- {0}'.format(_) for _ in _TS_FORMATS)
 
 
 def _normalize_human_friendly_time(val):
