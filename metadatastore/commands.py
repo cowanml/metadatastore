@@ -451,9 +451,9 @@ def _normalize_human_friendly_time(val):
     Non string/datetime.datetime values are returned unaltered.
     Leading/trailing whitespace is stripped.
     Supported formats:
-    {}
+    {0}
     """
-    # {} is placeholder for formats; filled in after def...
+    # {0} is placeholder for formats; filled in after def...
 
     tz = conf.connection_config['timezone']  # e.g., 'US/Eastern'
     zone = pytz.timezone(tz)  # tz as datetime.tzinfo object
