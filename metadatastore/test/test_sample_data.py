@@ -1,7 +1,15 @@
 from metadatastore.examples.sample_data.common import apply_deadband, noisy
-from metadatastore.examples.sample_data import temperature_ramp
+from metadatastore.examples.sample_data import (temperature_ramp,
+                                                multisource_event)
+from metadatastore.utils.testing import mds_setup, mds_teardown
 import numpy as np
 from nose.tools import raises
+
+def setup():
+    mds_setup()
+
+def teardown():
+    mds_teardown()
 
 @raises(ValueError)
 def test_bad_deadbands():
@@ -28,3 +36,15 @@ def test_sleepy_ramp():
     for failing_time in failing_times:
         yield _failing_sleepy_ramp_helper, failing_time
 
+
+def test_multisource_event():
+    multisource_event.run()
+
+
+def test_temperature_ramp():
+    temperature_ramp.run()
+
+
+if __name__ == "__main__":
+    import nose
+    nose.runmodule(argv=['-s', '--with-doctest'], exit=False)

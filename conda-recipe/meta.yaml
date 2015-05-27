@@ -23,7 +23,8 @@ requirements:
     - mongoengine
     - six
     - pyyaml
-    - pandas
+    - prettytable
+    - humanize
 
 test:
   requires:
