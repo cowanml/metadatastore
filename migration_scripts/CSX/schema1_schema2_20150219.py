@@ -8,7 +8,7 @@ import six
 from metadatastore.api import insert_beamline_config, insert_run_start, insert_run_stop, insert_event_descriptor, insert_event
 import metadatastore.conf as conf
 
-conf.mds_config['database'] =  'datastore2'
+conf.db_params['database'] =  'datastore2'
 
 import mongoengine
 

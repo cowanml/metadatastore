@@ -1,5 +1,6 @@
 from metadatastore.examples.sample_data.common import apply_deadband, noisy
-from metadatastore.examples.sample_data import temperature_ramp
+from metadatastore.examples.sample_data import (temperature_ramp,
+                                                multisource_event)
 from metadatastore.utils.testing import testdb_setup, testdb_teardown
 from metadatastore.odm_templates import collections
 import numpy as np
@@ -38,3 +39,15 @@ def test_sleepy_ramp():
     for failing_time in failing_times:
         yield _failing_sleepy_ramp_helper, failing_time
 
+
+def test_multisource_event():
+    multisource_event.run()
+
+
+def test_temperature_ramp():
+    temperature_ramp.run()
+
+
+if __name__ == "__main__":
+    import nose
+    nose.runmodule(argv=['-s', '--with-doctest'], exit=False)

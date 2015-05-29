@@ -16,7 +16,6 @@ before_install:
   - export MDS_HOST=localhost
   - export MDS_DATABASE=test
   - export MDS_TIMEZONE=US/Eastern
-  - export MDS_ALIAS=mds
   - mkdir -p /home/travis/.config/metadatastore
   - 'echo ''port: 27017'' > /home/travis/.config/metadatastore/connection.yml'
 
@@ -26,7 +25,7 @@ install:
   - conda create -n testenv --yes pip nose python=$TRAVIS_PYTHON_VERSION pymongo six pyyaml numpy pandas
   - conda install -n testenv --yes -c nikea mongoengine
   - source activate testenv
-  - pip install coveralls
+  - pip install coveralls prettytable humanize
   - python setup.py install
 
 

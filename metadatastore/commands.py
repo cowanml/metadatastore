@@ -11,13 +11,19 @@ import pytz
 import uuid
 from bson import ObjectId
 
-from metadatastore import (conf, ALIAS)
-
+from metadatastore import conf
 from .odm_templates import (RunStart, BeamlineConfig, RunStop,
                             EventDescriptor, Event, DataKey)
 from .document import Document
 
 logger = logging.getLogger(__name__)
+
+
+__all__ = ['insert_beamline_config', 'insert_run_start', 'insert_event',
+           'insert_run_stop', 'insert_event_descriptor', 'find_run_stops',
+           'find_beamline_configs', 'find_event_descriptors', 'find_last',
+           'find_events', 'find_run_starts', 'db_connect', 'db_disconnect',
+           'format_data_keys', 'format_events', 'reorganize_event']
 
 
 def ensure_connection(func=None, conf=None):
@@ -37,12 +43,14 @@ _ensure_connection = ensure_connection(conf=conf)
 
 
 def db_disconnect(collections):
+    """Helper function to deal with stateful connections to mongoengine"""
     mongoengine.connection.disconnect(ALIAS)
     for collection in collections:
         collection._collection = None
 
 
 def db_connect(database, host, port, alias=None):
+    """Helper function to deal with stateful connections to mongoengine"""
     return connect(db=database, host=host, port=port, alias=alias)
 
 
@@ -129,8 +137,11 @@ def insert_run_start(time, scan_id, beamline_id, beamline_config, uid=None,
     beamline_id : str
         Beamline String identifier. Not unique, just an indicator of
         beamline code for multiple beamline systems
-    beamline_config : metadatastore.odm_temples.BeamlineConfig
-        Foreign key to beamline config corresponding to a given run
+    beamline_config : metadatastore.documents.Document or str
+        if Document:
+            The metadatastore beamline config document
+        if str:
+            uid of beamline config corresponding to a given run
     uid : str, optional
         Globally unique id string provided to metadatastore
     owner : str, optional
@@ -160,6 +171,7 @@ def insert_run_start(time, scan_id, beamline_id, beamline_config, uid=None,
     if project is None:
         project = ''
 
+    beamline_config = _get_mongo_document(beamline_config, BeamlineConfig)
     run_start = RunStart(time=time, scan_id=scan_id,
                          time_as_datetime=_todatetime(time), uid=uid,
                          beamline_id=beamline_id,
@@ -170,7 +182,7 @@ def insert_run_start(time, scan_id, beamline_id, beamline_config, uid=None,
     run_start.save(validate=True, write_concern={"w": 1})
     logger.debug('Inserted RunStart with uid %s', run_start.uid)
 
-    return run_start
+    return uid
 
 
 @_ensure_connection
@@ -181,8 +193,11 @@ def insert_run_stop(run_start, time, uid=None, exit_status='success',
 
     Parameters
     ----------
-    run_start : metadatastore.odm_temples.RunStart
-        Foreign key to corresponding RunStart
+    run_start : metadatastore.documents.Document or str
+        if Document:
+            The metadatastore RunStart document
+        if str:
+            uid of RunStart object to associate with this record
     time : float
         The date/time as found at the client side when an event is
         created.
@@ -205,6 +220,7 @@ def insert_run_stop(run_start, time, uid=None, exit_status='success',
         uid = str(uuid.uuid4())
     if custom is None:
         custom = {}
+    run_start = _get_mongo_document(run_start, RunStart)
     run_stop = RunStop(run_start=run_start, reason=reason, time=time,
                        time_as_datetime=_todatetime(time), uid=uid,
                        exit_status=exit_status, **custom)
@@ -213,7 +229,7 @@ def insert_run_stop(run_start, time, uid=None, exit_status='success',
     logger.debug("Inserted RunStop with uid %s referencing RunStart "
                  " with uid %s", run_stop.uid, run_start.uid)
 
-    return run_stop
+    return uid
 
 
 @_ensure_connection
@@ -245,7 +261,7 @@ def insert_beamline_config(config_params, time, uid=None):
     logger.debug("Inserted BeamlineConfig with uid %s",
                  beamline_config.uid)
 
-    return beamline_config
+    return uid
 
 
 @_ensure_connection
@@ -255,8 +271,11 @@ def insert_event_descriptor(run_start, data_keys, time, uid=None,
 
     Parameters
     ----------
-    run_start: metadatastore.odm_templates.RunStart
-        RunStart object created prior to a RunStart
+    run_start : metadatastore.documents.Document or str
+        if Document:
+            The metadatastore RunStart document
+        if str:
+            uid of RunStart object to associate with this record
     data_keys : dict
         Provides information about keys of the data dictionary in
         an event will contain
@@ -280,6 +299,7 @@ def insert_event_descriptor(run_start, data_keys, time, uid=None,
     if custom is None:
         custom = {}
     data_keys = format_data_keys(data_keys)
+    run_start = _get_mongo_document(run_start, RunStart)
     event_descriptor = EventDescriptor(run_start=run_start,
                                        data_keys=data_keys, time=time,
                                        uid=uid,
@@ -287,24 +307,26 @@ def insert_event_descriptor(run_start, data_keys, time, uid=None,
                                        **custom)
 
     event_descriptor = _replace_descriptor_data_key_dots(event_descriptor,
-                                                          direction='in')
+                                                         direction='in')
 
     event_descriptor.save(validate=True, write_concern={"w": 1})
     logger.debug("Inserted EventDescriptor with uid %s referencing "
                  "RunStart with uid %s", event_descriptor.uid, run_start.uid)
 
-    return event_descriptor
+    return uid
 
 
 @_ensure_connection
-def insert_event(event_descriptor, time, data, seq_num, uid=None):
+def insert_event(descriptor, time, data, seq_num, uid=None):
     """Create an event in metadatastore database backend
 
     Parameters
     ----------
-    event_descriptor : metadatastore.odm_templates.EventDescriptor
-        EventDescriptor object that specific event entry is going
-        to point(foreign key)
+    descriptor : metadatastore.documents.Document or str
+        if Document:
+            The metadatastore EventDescriptor document
+        if str:
+            uid of EventDescriptor object to associate with this record
     time : float
         The date/time as found at the client side when an event is
         created.
@@ -319,22 +341,24 @@ def insert_event(event_descriptor, time, data, seq_num, uid=None):
     """
     m_data = _validate_data(data)
 
-    # mostly here to notify ophyd that an event descriptor needs to be created
-    if event_descriptor is None:
+    # Allow caller to beg forgiveness rather than ask permission w.r.t
+    # EventDescriptor creation.
+    if descriptor is None:
         raise EventDescriptorIsNoneError()
 
     if uid is None:
         uid = str(uuid.uuid4())
 
-    event = Event(descriptor_id=event_descriptor, uid=uid,
+    descriptor = _get_mongo_document(descriptor, EventDescriptor)
+    event = Event(descriptor_id=descriptor, uid=uid,
                   data=m_data, time=time, seq_num=seq_num)
 
     event = _replace_event_data_key_dots(event, direction='in')
     event.save(validate=True, write_concern={"w": 1})
     logger.debug("Inserted Event with uid %s referencing "
                  "EventDescriptor with uid %s", event.uid,
-                 event_descriptor.uid)
-    return event
+                 descriptor.uid)
+    return uid
 
 
 def _validate_data(data):
@@ -404,12 +428,12 @@ def _format_time(search_dict):
 
 # human friendly timestamp formats we'll parse
 _TS_FORMATS = [
-        '%Y-%m-%d %H:%M:%S',
-        '%Y-%m-%d %H:%M',  # these 2 are not as originally doc'd,
-        '%Y-%m-%d %H',     # but match previous pandas behavior
-        '%Y-%m-%d',
-        '%Y-%m',
-        '%Y']
+    '%Y-%m-%d %H:%M:%S',
+    '%Y-%m-%d %H:%M',  # these 2 are not as originally doc'd,
+    '%Y-%m-%d %H',     # but match previous pandas behavior
+    '%Y-%m-%d',
+    '%Y-%m',
+    '%Y']
 
 # build a tab indented, '-' bulleted list of supported formats
 # to append to the parsing function docstring below
@@ -497,6 +521,27 @@ def _normalize_object_id(kwargs, key):
     # Database errors will still raise.
 
 
+def _get_mongo_document(document, document_cls):
+    """Helper function to get the mongo id of the mongo document of type
+    ``document_cls``
+
+    Parameters
+    ----------
+    document : mds.odm_templates.Document or str
+        if str: The externally supplied unique identifier of the mongo document
+    document_cls : object
+        One of the class objects from the metadatastore.odm_templates module
+        {RunStart, RunStop, Event, EventDescriptor, etc...}
+    """
+    if isinstance(document, Document):
+        document = document.uid
+    # .get() is slower than .first() which is slower than [0].
+    # __raw__=dict() is faster than kwargs
+    # see http://nbviewer.ipython.org/gist/ericdill/ca047302c2c1f1865415
+    mongo_document = document_cls.objects(__raw__={'uid': document})[0]
+    return mongo_document
+
+
 @_ensure_connection
 def find_run_starts(**kwargs):
     """Given search criteria, locate RunStart Documents.
@@ -550,10 +595,10 @@ def find_run_starts(**kwargs):
     """
     _normalize_object_id(kwargs, '_id')
     _format_time(kwargs)
-    _as_document = _AsDocument()
 
     rs_objects = RunStart.objects(__raw__=kwargs).order_by('-time')
     rs_objects = rs_objects.no_dereference()
+    _as_document = _AsDocument()
     return (_as_document(rs) for rs in rs_objects)
 
 
@@ -584,26 +629,23 @@ def find_beamline_configs(**kwargs):
     -------
     beamline_configs : iterable of metadatastore.document.Document objects
     """
-    _as_document = _AsDocument()
     _format_time(kwargs)
     # ordered by _id because it is not guaranteed there will be time in cbonfig
     beamline_configs = BeamlineConfig.objects(__raw__=kwargs).order_by('-_id')
     beamline_configs = beamline_configs.no_dereference()
+    _as_document = _AsDocument()
     return (_as_document(bc) for bc in beamline_configs)
 
 
 @_ensure_connection
-def find_run_stops(**kwargs):
+def find_run_stops(run_start=None, **kwargs):
     """Given search criteria, locate RunStop Documents.
 
     Parameters
     ----------
-    run_start : metadatastore.document.Document, optional
-        The run start to get the corresponding run end for
-    run_start_id : str or ObjectId, optional
-        The unique id generated by mongo for the RunStart Document.
-        NOTE: If both `run_start` and `run_start_id` are provided,
-              `run_start.id` supersedes `run_start_id`
+    run_start : metadatastore.document.Document or str, optional
+        The metadatastore run start document or the metadatastore uid to get
+        the corresponding run end for
     start_time : time-like, optional
         time-like representation of the earliest time that a RunStop
         was created. Valid options are:
@@ -630,11 +672,11 @@ def find_run_stops(**kwargs):
     run_stop : iterable of metadatastore.document.Document objects
     """
     _format_time(kwargs)
+    # get the actual mongo document
+    if run_start:
+        run_start = _get_mongo_document(run_start, RunStart)
+        kwargs['run_start_id'] = run_start.id
 
-    try:
-        kwargs['run_start_id'] = kwargs.pop('run_start').id
-    except KeyError:
-        pass
     _normalize_object_id(kwargs, '_id')
     _normalize_object_id(kwargs, 'run_start_id')
     run_stop = RunStop.objects(__raw__=kwargs).order_by('-time')
@@ -646,17 +688,18 @@ def find_run_stops(**kwargs):
 
 
 @_ensure_connection
-def find_event_descriptors(**kwargs):
+def find_event_descriptors(run_start=None, **kwargs):
     """Given search criteria, locate EventDescriptor Documents.
 
     Parameters
     ----------
-    run_start : mongoengine.Document.Document, optional
-        RunStart object EventDescriptor points to
-    run_start_id : str or ObjectId, optional
-        The unique id generated by mongo for the RunStart Document.
-        NOTE: If both `run_start` and `run_start_id` are provided,
-              `run_start.id` supersedes `run_start_id`
+    run_start : metadatastore.document.Document or uid, optional
+        if ``Document``:
+            The metadatastore run start document or the metadatastore uid to get
+            the corresponding run end for
+        if ``str``:
+            Globally unique id string provided to metadatastore for the
+            RunStart Document.
     start_time : time-like, optional
         time-like representation of the earliest time that an EventDescriptor
         was created. Valid options are:
@@ -680,10 +723,11 @@ def find_event_descriptors(**kwargs):
     """
     _format_time(kwargs)
     _as_document = _AsDocument()
-    try:
-        kwargs['run_start_id'] = kwargs.pop('run_start').id
-    except KeyError:
-        pass
+    # get the actual mongo document
+    if run_start:
+        run_start = _get_mongo_document(run_start, RunStart)
+        kwargs['run_start_id'] = run_start.id
+
     _normalize_object_id(kwargs, '_id')
     _normalize_object_id(kwargs, 'run_start_id')
     event_descriptor_objects = EventDescriptor.objects(__raw__=kwargs)
@@ -696,7 +740,7 @@ def find_event_descriptors(**kwargs):
 
 
 @_ensure_connection
-def find_events(**kwargs):
+def find_events(descriptor=None, **kwargs):
     """Given search criteria, locate Event Documents.
 
     Parameters
@@ -713,12 +757,13 @@ def find_events(**kwargs):
     stop_time : time-like, optional
         timestamp of the latest time that an Event was created. See
         docs for `start_time` for examples.
-    descriptor : mongoengine.Document, optional
-        event descriptor object
-    descriptor_id : str or ObjectId
-        The unique id generated by mongo for the EventDescriptor
-        NOTE: If both `descriptor` and `descriptor_id` are provided,
-              `descriptor.id` supersedes `descriptor_id`
+    descriptor : metadatastore.document.Document or uid, optional
+        if Document:
+            The metadatastore run start document or the metadatastore uid to get
+            the corresponding run end for
+        if uid:
+            Globally unique id string provided to metadatastore for the
+            EventDescriptor Document.
     uid : str, optional
         Globally unique id string provided to metadatastore
     _id : str or ObjectId, optional
@@ -735,12 +780,12 @@ def find_events(**kwargs):
         raise ValueError("Use 'descriptor_id', not 'event_descriptor_id'.")
 
     _format_time(kwargs)
-    try:
-        kwargs['descriptor_id'] = kwargs.pop('descriptor').id
-    except KeyError:
-        pass
+    # get the actual mongo document
+    if descriptor:
+        descriptor = _get_mongo_document(descriptor, EventDescriptor)
+        kwargs['descriptor_id'] = descriptor.id
+
     _normalize_object_id(kwargs, '_id')
-    _normalize_object_id(kwargs, 'descriptor_id')
     events = Event.objects(__raw__=kwargs).order_by('-time')
     events = events.as_pymongo()
     dref_dict = dict()
@@ -834,7 +879,9 @@ def _src_dst(direction):
 
 
 def _replace_descriptor_data_key_dots(ev_desc, direction='in'):
-    """Replace the '.' with [dot]
+    """Replace the '.' with [dot].
+
+    Relevant because PVs can have dots in their names
 
     Parameters
     ---------
@@ -849,12 +896,14 @@ def _replace_descriptor_data_key_dots(ev_desc, direction='in'):
     """
     src, dst = _src_dst(direction)
     ev_desc.data_keys = _replace_dict_keys(ev_desc.data_keys,
-                                            src, dst)
+                                           src, dst)
     return ev_desc
 
 
 def _replace_event_data_key_dots(event, direction='in'):
-    """Replace the '.' with [dot]
+    """Replace the '.' with [dot].
+
+    Relevant because PVs can have dots in their names
 
     Parameters
     ---------
@@ -869,7 +918,7 @@ def _replace_event_data_key_dots(event, direction='in'):
     """
     src, dst = _src_dst(direction)
     event.data = _replace_dict_keys(event.data,
-                                     src, dst)
+                                    src, dst)
     return event
 
 
