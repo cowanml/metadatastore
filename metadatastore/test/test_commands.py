@@ -9,7 +9,7 @@ from nose.tools import assert_equal, assert_raises, raises
 
 from metadatastore.odm_templates import collections
 import metadatastore.commands as mdsc
-from metadatastore.utils.testing import testdb_setup, testdb_teardown
+from metadatastore.utils.testing import dbtest_setup, dbtest_teardown
 from metadatastore.examples.sample_data import temperature_ramp
 
 
@@ -23,11 +23,11 @@ document_insertion_time = None
 
 
 def teardown():
-    testdb_teardown(collections, drop_db=False)
+    dbtest_teardown(collections, drop_db=False)
 
 
 def setup():
-    testdb_setup(collections)
+    dbtest_setup(collections)
     global blc_uid, run_start_uid, document_insertion_time
     document_insertion_time = ttime.time()
     temperature_ramp.run()

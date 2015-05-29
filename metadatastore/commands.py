@@ -44,7 +44,7 @@ _ensure_connection = ensure_connection(conf=conf)
 
 def db_disconnect(collections):
     """Helper function to deal with stateful connections to mongoengine"""
-    mongoengine.connection.disconnect(ALIAS)
+    mongoengine.connection.disconnect(conf.ALIAS)
     for collection in collections:
         collection._collection = None
 
