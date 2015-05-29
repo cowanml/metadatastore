@@ -80,12 +80,12 @@ def format_data_keys(data_key_dict):
          'data_key2': mds.odm_templates.DataKeys
         }
     """
-    data_key_dict = {key_name: (
-                     DataKey(**data_key_description) if
-                     not isinstance(data_key_description, DataKey) else
-                     data_key_description)
-                     for key_name, data_key_description
-                     in six.iteritems(data_key_dict)}
+
+    for key_name, data_key_description in six.iteritems(data_key_dict):
+        data_key_dict[key_name] = (DataKey(**data_key_description) if
+                                   not isinstance(data_key_description, DataKey) else
+                                   data_key_description)
+
     return data_key_dict
 
 
@@ -115,8 +115,11 @@ def format_events(event_dict):
          'data_key2': [...],
         }
     """
-    return {key: [data_dict['value'], data_dict['timestamp']]
-            for key, data_dict in six.iteritems(event_dict)}
+
+    d = {}
+    for key, data_dict in six.iteritems(event_dict):
+        d[key] = [data_dict['value'], data_dict['timestamp']]
+    return d
 
 
 # database INSERTION ###################################################
@@ -437,7 +440,7 @@ _TS_FORMATS = [
 
 # build a tab indented, '-' bulleted list of supported formats
 # to append to the parsing function docstring below
-_doc_ts_formats = '\n'.join('\t- {}'.format(_) for _ in _TS_FORMATS)
+_doc_ts_formats = '\n'.join('\t- {0}'.format(_) for _ in _TS_FORMATS)
 
 
 def _normalize_human_friendly_time(val):
@@ -450,9 +453,9 @@ def _normalize_human_friendly_time(val):
     Non string/datetime.datetime values are returned unaltered.
     Leading/trailing whitespace is stripped.
     Supported formats:
-    {}
+    {0}
     """
-    # {} is placeholder for formats; filled in after def...
+    # {0} is placeholder for formats; filled in after def...
 
     tz = conf.timezone  # e.g., 'US/Eastern'
     zone = pytz.timezone(tz)  # tz as datetime.tzinfo object
@@ -850,8 +853,11 @@ def _replace_dict_keys(input_dict, src, dst):
         replaced with 'dst'
 
     """
-    return {k.replace(src, dst): v for
-            k, v in six.iteritems(input_dict)}
+
+    d = {}
+    for k, v in six.iteritems(input_dict):
+        d[k.replace(src, dst)] = v
+    return d
 
 
 def _src_dst(direction):
