@@ -1,7 +1,7 @@
 from metadatastore.examples.sample_data.common import apply_deadband, noisy
 from metadatastore.examples.sample_data import (temperature_ramp,
                                                 multisource_event)
-from metadatastore.utils.testing import testdb_setup, testdb_teardown
+from metadatastore.utils.testing import (testdb_setup, testdb_teardown)
 from metadatastore.odm_templates import collections
 import numpy as np
 from nose.tools import raises

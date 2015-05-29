@@ -1,7 +1,6 @@
 import uuid
 import os
 from metadatastore.api import db_connect, db_disconnect
-import os
 
 conn = None
 
