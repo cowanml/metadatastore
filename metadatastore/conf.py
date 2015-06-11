@@ -77,6 +77,7 @@ def load_configuration(name, prefix, fields=None):
     db_params = {}
     for key in db_connect_args:
         db_params[key] = config.pop(key)
+    db_params['port'] = int(db_params['port'])
     
     return (db_params, alias, timezone, config)
 
