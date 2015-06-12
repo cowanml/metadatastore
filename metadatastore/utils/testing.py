@@ -3,23 +3,22 @@ from metadatastore.api import db_connect, db_disconnect
 
 conn = None
 
-test_db_name = "mds_testing_disposable_{}".format(str(uuid.uuid4()))
-test_db_host = 'localhost'
-test_db_port = '27017'
-test_db_alias = 'mds'
+test_db_params = {'database': "mds_testing_disposable_{0}".format(str(uuid.uuid4())),
+                  'host': 'localhost',
+                  'port': 27017,
+                  'alias': 'mds'}
 
 
-def dbtest_setup(collections):
+def dbtest_setup(collections, test_db_params):
     "Create a fresh database with unique (random) name."
     global conn
     db_disconnect(collections)
-    conn = db_connect(test_db_name, test_db_host,
-                      int(test_db_port), test_db_alias)
+    conn = db_connect(**test_db_params)
 
 
-def dbtest_teardown(collections, drop_db=True):
+def dbtest_teardown(collections, test_db_params, drop_db=True):
     "Drop the fresh database and disconnect."
 
     if drop_db != False:
-        conn.drop_database(test_db_name)
+        conn.drop_database(test_db_params['database'])
     db_disconnect(collections)

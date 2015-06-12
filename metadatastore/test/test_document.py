@@ -7,7 +7,7 @@ import datetime
 import pytz
 from nose.tools import assert_equal, assert_raises, raises
 import metadatastore.commands as mdsc
-from metadatastore.utils.testing import (dbtest_setup, dbtest_teardown)
+from metadatastore.utils.testing import (dbtest_setup, dbtest_teardown, test_db_params)
 from metadatastore.odm_templates import collections
 from metadatastore.examples.sample_data import temperature_ramp
 from metadatastore.api import (find_run_starts, find_run_stops,
@@ -32,11 +32,11 @@ run_stop_uid = None
 #### Nose setup/teardown methods ###############################################
 
 def teardown():
-    dbtest_teardown(collections)
+    dbtest_teardown(collections, test_db_params)
 
 
 def setup():
-    dbtest_setup(collections)
+    dbtest_setup(collections, test_db_params)
     global blc_uid, run_start_uid, document_insertion_time, run_stop_uid
     global descriptor_uid
     document_insertion_time = ttime.time()

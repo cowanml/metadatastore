@@ -1,17 +1,17 @@
 from metadatastore.examples.sample_data.common import apply_deadband, noisy
 from metadatastore.examples.sample_data import (temperature_ramp,
                                                 multisource_event)
-from metadatastore.utils.testing import (dbtest_setup, dbtest_teardown)
+from metadatastore.utils.testing import (dbtest_setup, dbtest_teardown, test_db_params)
 from metadatastore.odm_templates import collections
 import numpy as np
 from nose.tools import raises
 
 
 def setup():
-    dbtest_setup(collections)
+    dbtest_setup(collections, test_db_params)
 
 def teardown():
-    dbtest_teardown(collections)
+    dbtest_teardown(collections, test_db_params)
 
 
 @raises(ValueError)
